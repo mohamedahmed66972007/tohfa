@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -7,133 +8,148 @@ import HomePage from "@/pages/home";
 import QuizPage from "@/pages/quiz";
 import AddContestantPage from "@/pages/add-contestant";
 import type { Contestant, InsertQuestion } from "@shared/schema";
+import { randomUUID } from "crypto";
 
-type Screen = "home" | "add-contestant" | "edit-contestant" | "quiz";
+type Page = "home" | "quiz" | "add-contestant" | "edit-contestant";
+
+const STORAGE_KEY = "quiz-contestants";
+
+// دالة لحفظ البيانات في localStorage
+function saveToLocalStorage(contestants: Contestant[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(contestants));
+}
+
+// دالة لتحميل البيانات من localStorage
+function loadFromLocalStorage(): Contestant[] {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>("home");
-  const [contestants, setContestants] = useState<Contestant[]>(() => {
-    const savedContestants = localStorage.getItem("contestants");
-    return savedContestants ? JSON.parse(savedContestants) : [];
-  });
-  const [selectedContestantId, setSelectedContestantId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<Page>("home");
+  const [contestants, setContestants] = useState<Contestant[]>([]);
+  const [currentContestantId, setCurrentContestantId] = useState<string | null>(null);
   const [editingContestantId, setEditingContestantId] = useState<string | null>(null);
 
+  // تحميل البيانات من localStorage عند بدء التطبيق
   useEffect(() => {
-    localStorage.setItem("contestants", JSON.stringify(contestants));
-  }, [contestants]);
+    const savedContestants = loadFromLocalStorage();
+    setContestants(savedContestants);
+  }, []);
 
-  const handleAddContestant = (newContestant: {
-    name: string;
-    questions: InsertQuestion[];
-    randomizeQuestions: boolean;
-    randomizeOptions: boolean;
-    enableTimer: boolean;
-    timerMinutes: number;
-  }) => {
-    const contestant: Contestant = {
-      id: Date.now().toString(),
-      ...newContestant,
-      questions: newContestant.questions.map((q, index) => ({
-        ...q,
-        id: `${Date.now()}-${index}`,
-      })),
-    };
-
-    setContestants([...contestants, contestant]);
-    setCurrentScreen("home");
+  const handleAddContestant = () => {
+    setEditingContestantId(null);
+    setCurrentPage("add-contestant");
   };
 
-  const handleEditContestant = (updatedContestant: {
-    name: string;
-    questions: InsertQuestion[];
-    randomizeQuestions: boolean;
-    randomizeOptions: boolean;
-    enableTimer: boolean;
-    timerMinutes: number;
-  }) => {
-    if (!editingContestantId) return;
+  const handleEditContestant = (id: string) => {
+    setEditingContestantId(id);
+    setCurrentPage("edit-contestant");
+  };
 
-    const updatedContestants = contestants.map((c) => {
-      if (c.id === editingContestantId) {
-        const questionsWithIds = updatedContestant.questions.map((q: any) => {
-          if (q.id) {
-            return q;
-          }
-
+  const handleSaveContestant = (
+    name: string,
+    questions: InsertQuestion[],
+    randomizeQuestions: boolean,
+    randomizeOptions: boolean,
+    enableTimer: boolean,
+    timerMinutes: number,
+    editingId?: string
+  ) => {
+    if (editingId) {
+      // تحديث contestant موجود
+      const updatedContestants = contestants.map((c) => {
+        if (c.id === editingId) {
           return {
-            ...q,
-            id: `${Date.now()}-${Math.random()}`,
+            ...c,
+            name,
+            questions: questions.map((q, index) => ({
+              ...q,
+              id: `${editingId}-q-${index}`,
+            })),
+            randomizeQuestions,
+            randomizeOptions,
+            enableTimer,
+            timerMinutes,
           };
-        });
-
-        return {
-          ...c,
-          ...updatedContestant,
-          questions: questionsWithIds,
-        };
-      }
-      return c;
-    });
-
-    setContestants(updatedContestants);
-    setEditingContestantId(null);
-    setCurrentScreen("home");
+        }
+        return c;
+      });
+      setContestants(updatedContestants);
+      saveToLocalStorage(updatedContestants);
+    } else {
+      // إضافة contestant جديد
+      const id = crypto.randomUUID();
+      const newContestant: Contestant = {
+        id,
+        name,
+        questions: questions.map((q, index) => ({
+          ...q,
+          id: `${id}-q-${index}`,
+        })),
+        randomizeQuestions,
+        randomizeOptions,
+        enableTimer,
+        timerMinutes,
+      };
+      const updatedContestants = [...contestants, newContestant];
+      setContestants(updatedContestants);
+      saveToLocalStorage(updatedContestants);
+    }
+    setCurrentPage("home");
   };
 
   const handleDeleteContestant = (id: string) => {
-    setContestants(contestants.filter(c => c.id !== id));
+    const updatedContestants = contestants.filter((c) => c.id !== id);
+    setContestants(updatedContestants);
+    saveToLocalStorage(updatedContestants);
   };
 
-  const handleStartQuiz = (id: string) => {
-    setSelectedContestantId(id);
-    setCurrentScreen("quiz");
+  const handleStartQuiz = (contestantId: string) => {
+    setCurrentContestantId(contestantId);
+    setCurrentPage("quiz");
   };
 
-  const selectedContestant = contestants.find(c => c.id === selectedContestantId);
-  const editingContestant = contestants.find(c => c.id === editingContestantId);
+  const handleQuizComplete = () => {
+    setCurrentContestantId(null);
+    setCurrentPage("home");
+  };
+
+  const handleCancelAddContestant = () => {
+    setEditingContestantId(null);
+    setCurrentPage("home");
+  };
+
+  const currentContestant = contestants.find((c) => c.id === currentContestantId);
+  const editingContestant = contestants.find((c) => c.id === editingContestantId);
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        {currentScreen === "home" && (
+        {currentPage === "home" && (
           <HomePage
             contestants={contestants}
-            onAddContestant={() => setCurrentScreen("add-contestant")}
+            onAddContestant={handleAddContestant}
             onStartQuiz={handleStartQuiz}
-            onEditContestant={(id) => {
-              setEditingContestantId(id);
-              setCurrentScreen("edit-contestant");
-            }}
+            onEditContestant={handleEditContestant}
             onDeleteContestant={handleDeleteContestant}
           />
         )}
-
-        {currentScreen === "add-contestant" && (
+        {currentPage === "quiz" && currentContestant && (
+          <QuizPage contestant={currentContestant} onComplete={handleQuizComplete} />
+        )}
+        {(currentPage === "add-contestant" || currentPage === "edit-contestant") && (
           <AddContestantPage
-            onSubmit={handleAddContestant}
-            onCancel={() => setCurrentScreen("home")}
+            onSave={handleSaveContestant}
+            onCancel={handleCancelAddContestant}
+            editingContestant={editingContestant}
           />
         )}
-
-        {currentScreen === "edit-contestant" && editingContestant && (
-          <AddContestantPage
-            onSubmit={handleEditContestant}
-            onCancel={() => {
-              setEditingContestantId(null);
-              setCurrentScreen("home");
-            }}
-            contestant={editingContestant}
-          />
-        )}
-
-        {currentScreen === "quiz" && selectedContestant && (
-          <QuizPage
-            contestant={selectedContestant}
-            onComplete={() => setCurrentScreen("home")}
-          />
-        )}
-
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
