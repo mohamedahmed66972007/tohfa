@@ -8,7 +8,11 @@ import HomePage from "@/pages/home";
 import QuizPage from "@/pages/quiz";
 import AddContestantPage from "@/pages/add-contestant";
 import type { Contestant, InsertQuestion } from "@shared/schema";
-import { randomUUID } from "crypto";
+
+// دالة لتوليد معرف فريد
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+}
 
 type Page = "home" | "quiz" | "add-contestant" | "edit-contestant";
 
@@ -52,25 +56,26 @@ function App() {
     setCurrentPage("edit-contestant");
   };
 
-  const handleSaveContestant = (
-    name: string,
-    questions: InsertQuestion[],
-    randomizeQuestions: boolean,
-    randomizeOptions: boolean,
-    enableTimer: boolean,
-    timerMinutes: number,
-    editingId?: string
-  ) => {
-    if (editingId) {
+  const handleSaveContestant = (data: {
+    name: string;
+    questions: InsertQuestion[];
+    randomizeQuestions: boolean;
+    randomizeOptions: boolean;
+    enableTimer: boolean;
+    timerMinutes: number;
+  }) => {
+    const { name, questions, randomizeQuestions, randomizeOptions, enableTimer, timerMinutes } = data;
+    
+    if (editingContestantId) {
       // تحديث contestant موجود
       const updatedContestants = contestants.map((c) => {
-        if (c.id === editingId) {
+        if (c.id === editingContestantId) {
           return {
             ...c,
             name,
             questions: questions.map((q, index) => ({
               ...q,
-              id: `${editingId}-q-${index}`,
+              id: `${editingContestantId}-q-${index}`,
             })),
             randomizeQuestions,
             randomizeOptions,
@@ -84,7 +89,7 @@ function App() {
       saveToLocalStorage(updatedContestants);
     } else {
       // إضافة contestant جديد
-      const id = crypto.randomUUID();
+      const id = generateId();
       const newContestant: Contestant = {
         id,
         name,
