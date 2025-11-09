@@ -44,7 +44,8 @@ Preferred communication style: Simple, everyday language.
 - Session management setup (connect-pg-simple)
 
 **Current Implementation:**
-- **In-Memory Storage**: MemStorage class implementing IStorage interface
+- **File-Based Storage**: FileStorage class implementing IStorage interface
+- **Persistent Data**: Contestants saved to `data/contestants.json` file
 - **Storage Interface**: Defines CRUD operations for contestants (get, getAll, create, delete)
 - **Data Models**: Contestants contain name, questions array, randomization flags, and timer settings
 - **Server Setup**: Express server with JSON parsing, logging middleware, and route registration structure
@@ -106,9 +107,9 @@ Preferred communication style: Simple, everyday language.
 - Score tracking and percentage calculation
 - Result screen with performance feedback
 
-**Lifelines (Planned):**
-- 50/50: Remove two incorrect answers
-- Phone a Friend: 30-second timer overlay
+**Lifelines:**
+- 50/50: Remove two incorrect answers (implemented)
+- Phone a Friend: 30-second timer overlay with dedicated sound effect (implemented)
 
 **Timer System:**
 - Optional per-contestant timer
@@ -116,12 +117,52 @@ Preferred communication style: Simple, everyday language.
 - Countdown display during quiz
 - Auto-fail on timer expiration
 
+**Audio System:**
+- Background music: "Who Wants to Be a Millionaire" theme music
+  - Starts automatically when quiz begins at 60% volume
+  - Loops continuously throughout the quiz
+  - Fades out gradually (2.5 seconds) when quiz ends
+- Sound effects: Phone-a-Friend lifeline sound
+  - Plays once when lifeline is activated at 70% volume
+  - Stops immediately when user selects an answer
+  - Phone-a-Friend panel disappears when answer is selected
+  - Does not repeat after completion
+- Custom audio hooks: `useBackgroundMusic` and `useSoundEffect`
+- Audio files stored in `attached_assets/` directory
+
+## Recent Changes (November 2025)
+
+**Replit Environment Setup:**
+- Configured Vite dev server to allow Replit proxy hosts (.replit.dev, .repl.co)
+- Set up development workflow on port 5000 (both frontend and backend)
+- Created .gitignore for Node.js project
+- Configured deployment for autoscale (stateless web app)
+- Currently using in-memory storage (database not provisioned)
+
+**Audio Integration (November 9, 2025):**
+- Added background music playback system with looping and fade-out
+- Integrated "Who Wants to Be a Millionaire" theme music for quiz atmosphere
+- Added phone-a-friend lifeline sound effect
+- Created custom React hooks for audio management:
+  - `useBackgroundMusic`: Handles looping background music with fade-out functionality
+  - `useSoundEffect`: Manages one-time sound effect playback
+
+**Data Persistence (November 9, 2025):**
+- Switched from in-memory storage to file-based storage
+- Created FileStorage class that persists data to JSON file
+- Data now survives server restarts
+- Contestants stored in `data/contestants.json`
+- Added `data/` directory to `.gitignore`
+
 ## External Dependencies
 
-**Database:**
-- PostgreSQL via Neon serverless (`@neondatabase/serverless`)
-- Drizzle ORM for type-safe database queries
-- Migration system via drizzle-kit
+**Storage:**
+- Currently using FileStorage (file-based) implementation
+- Data persisted to `data/contestants.json`
+- Data survives server restarts
+- PostgreSQL via Neon serverless (`@neondatabase/serverless`) - configured but not provisioned
+- Drizzle ORM for type-safe database queries (ready for future migration)
+- Migration system via drizzle-kit (ready for future migration)
 
 **UI Components:**
 - Radix UI primitives (dialogs, dropdowns, popover, etc.)

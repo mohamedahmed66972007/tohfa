@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Check, X, Users, MinusCircle } from "lucide-react";
+import { useSoundEffect } from "@/hooks/use-sound-effect";
+import phoneFriendSrc from "@assets/صوت استعانه ب صديق_1762718111821.mp3";
+import correctAnswerSrc from "@assets/صوت الاجابة صح_1762720364265.mp3";
+import wrongAnswerSrc from "@assets/صوت الاجابة غلط_1762720364264.mp3";
 
 interface QuizQuestionProps {
   questionNumber: number;
@@ -38,6 +42,8 @@ export default function QuizQuestion({
   const [showPhoneFriend, setShowPhoneFriend] = useState(false);
   const [phoneFriendTimer, setPhoneFriendTimer] = useState(30);
   const [remainingTime, setRemainingTime] = useState(timerSeconds);
+
+  const { play: playSoundEffect, stop: stopSoundEffect, fade: fadeSoundEffect } = useSoundEffect({ volume: 0.7 });
 
   useEffect(() => {
     if (timerSeconds && remainingTime !== undefined && remainingTime > 0 && !showResult) {
@@ -79,28 +85,41 @@ export default function QuizQuestion({
     const wrongAnswers = [0, 1, 2, 3].filter((i) => i !== correctAnswer);
     const shuffled = wrongAnswers.sort(() => Math.random() - 0.5);
     const toRemove = shuffled.slice(0, 2);
-    
+
     setRemovedOptions(toRemove);
     if (onLifelineUsed) onLifelineUsed("fifty-fifty");
   };
 
   const handlePhoneFriend = () => {
     if (!canUsePhoneFriend) return;
+    playSoundEffect(phoneFriendSrc);
     setShowPhoneFriend(true);
     setPhoneFriendTimer(30);
     if (onLifelineUsed) onLifelineUsed("phone-friend");
   };
 
   const handleAnswerClick = (index: number) => {
-    if (showResult || removedOptions.includes(index)) return;
-    
+    if (selectedAnswer !== null || showResult || removedOptions.includes(index)) return;
+
+    if (showPhoneFriend) {
+      fadeSoundEffect(1500);
+      setShowPhoneFriend(false);
+    }
+
     setSelectedAnswer(index);
     setShowResult(true);
+
     const isCorrect = index === correctAnswer;
-    
+
+    if (isCorrect) {
+      playSoundEffect(correctAnswerSrc);
+    } else {
+      playSoundEffect(wrongAnswerSrc);
+    }
+
     setTimeout(() => {
       onAnswerSelected(isCorrect);
-    }, 800);
+    }, 1500);
   };
 
   const formatTime = (seconds: number | undefined) => {

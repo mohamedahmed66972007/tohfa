@@ -2,7 +2,13 @@ import { useState, useEffect } from "react";
 import QuizQuestion from "@/components/QuizQuestion";
 import QuizResult from "@/components/QuizResult";
 import Header from "@/components/Header";
+import { useBackgroundMusic } from "@/hooks/use-background-music";
 import type { Contestant, Question } from "@shared/schema";
+import backgroundMusicSrc from "@assets/صوت موسيقى من سيربح المليون_1762718195473.mp3";
+
+// Placeholder for sound effects - actual implementation would require audio playback logic
+const correctSoundSrc = "/sounds/correct.mp3";
+const incorrectSoundSrc = "/sounds/incorrect.mp3";
 
 interface QuizPageProps {
   contestant: Contestant;
@@ -27,9 +33,21 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
   const [usedPhoneFriend, setUsedPhoneFriend] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState<number | undefined>(undefined);
 
+  const { fadeOut } = useBackgroundMusic({
+    src: backgroundMusicSrc,
+    volume: 0.5,
+    fadeOutDuration: 2500
+  });
+
+  // Placeholder for playing sound effects
+  const playSound = (src: string) => {
+    const audio = new Audio(src);
+    audio.play();
+  };
+
   useEffect(() => {
     let questions = [...contestant.questions];
-    
+
     if (contestant.randomizeQuestions) {
       questions = shuffleArray(questions);
     }
@@ -38,7 +56,7 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
       questions = questions.map(q => {
         const optionsWithIndex = q.options.map((opt, idx) => ({ opt, idx }));
         const shuffled = shuffleArray(optionsWithIndex);
-        
+
         return {
           ...q,
           options: shuffled.map(item => item.opt),
@@ -57,6 +75,9 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
   const handleAnswerSelected = (isCorrect: boolean) => {
     if (isCorrect) {
       setCorrectAnswers(correctAnswers + 1);
+      playSound(correctSoundSrc); // Play correct sound
+    } else {
+      playSound(incorrectSoundSrc); // Play incorrect sound
     }
 
     if (currentQuestionIndex + 1 < quizQuestions.length) {
@@ -65,6 +86,7 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
       }, 1000);
     } else {
       setTimeout(() => {
+        fadeOut();
         setIsFinished(true);
       }, 1000);
     }
@@ -79,6 +101,7 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
   };
 
   const handleTimerEnd = () => {
+    fadeOut();
     setIsFinished(true);
   };
 
@@ -102,7 +125,7 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 pt-32 pb-12">
         <div className="mb-8 text-center">
           <h2 className="text-2xl font-bold text-primary" data-testid="text-contestant-name">
