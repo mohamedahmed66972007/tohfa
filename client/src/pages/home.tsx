@@ -24,14 +24,6 @@ export default function HomePage({
       <Header />
       
       <main className="container mx-auto px-4 pt-24 pb-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            اختر متسابقك
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            ابدأ مسابقتك الآن أو أضف متسابقين جدد
-          </p>
-        </div>
 
         <div className="max-w-6xl mx-auto mb-8">
           <Button

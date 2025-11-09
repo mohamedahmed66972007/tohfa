@@ -100,7 +100,7 @@ export default function QuizQuestion({
     
     setTimeout(() => {
       onAnswerSelected(isCorrect);
-    }, 2000);
+    }, 800);
   };
 
   const formatTime = (seconds: number | undefined) => {
@@ -151,7 +151,7 @@ export default function QuizQuestion({
           )}
         >
           <Users className="ml-2 h-5 w-5" />
-          اتصل بصديق
+          الاستعانة ب صديق
         </Button>
       </div>
 
@@ -159,7 +159,6 @@ export default function QuizQuestion({
         <div className="mb-8 bg-accent/20 border-2 border-accent rounded-lg p-6 text-center">
           <p className="text-2xl font-bold text-accent mb-2">اتصال بصديق...</p>
           <p className="text-4xl font-bold text-foreground">{phoneFriendTimer} ثانية</p>
-          <p className="text-sm text-muted-foreground mt-2">تحدث مع صديقك لمعرفة الإجابة</p>
         </div>
       )}
 

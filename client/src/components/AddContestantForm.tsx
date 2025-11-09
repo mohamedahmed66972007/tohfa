@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Edit } from "lucide-react";
+import { cn } from "@/lib/utils";
 import AddQuestionForm from "./AddQuestionForm";
-import type { InsertQuestion } from "@shared/schema";
+import type { InsertQuestion, Contestant, Question } from "@shared/schema";
 
 interface AddContestantFormProps {
   onSubmit: (contestant: {
@@ -20,22 +21,73 @@ interface AddContestantFormProps {
     timerMinutes: number;
   }) => void;
   onCancel?: () => void;
+  contestant?: Contestant;
 }
 
-export default function AddContestantForm({ onSubmit, onCancel }: AddContestantFormProps) {
+export default function AddContestantForm({ onSubmit, onCancel, contestant }: AddContestantFormProps) {
   const [name, setName] = useState("");
-  const [questions, setQuestions] = useState<InsertQuestion[]>([]);
+  const [questions, setQuestions] = useState<(InsertQuestion & { id?: string })[]>([]);
   const [randomizeQuestions, setRandomizeQuestions] = useState(false);
   const [randomizeOptions, setRandomizeOptions] = useState(false);
   const [enableTimer, setEnableTimer] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(1);
+  const [editingQuestion, setEditingQuestion] = useState<{ question: Question | (InsertQuestion & { id?: string }); id: string } | null>(null);
+
+  useEffect(() => {
+    if (contestant) {
+      setName(contestant.name);
+      setQuestions(contestant.questions);
+      setRandomizeQuestions(contestant.randomizeQuestions);
+      setRandomizeOptions(contestant.randomizeOptions);
+      setEnableTimer(contestant.enableTimer);
+      setTimerMinutes(contestant.timerMinutes);
+    }
+  }, [contestant]);
 
   const handleAddQuestion = (question: InsertQuestion) => {
-    setQuestions([...questions, question]);
+    const questionWithId = {
+      ...question,
+      id: `temp-${Date.now()}-${Math.random()}`,
+    };
+    setQuestions([...questions, questionWithId]);
+  };
+
+  const handleUpdateQuestion = (updatedQuestion: Question) => {
+    const questionId = editingQuestion?.id;
+    if (!questionId) return;
+
+    const updatedQuestions = questions.map((q) => {
+      if (q.id === questionId) {
+        return {
+          ...updatedQuestion,
+          id: questionId,
+        };
+      }
+      return q;
+    });
+    
+    setQuestions(updatedQuestions);
+    setEditingQuestion(null);
   };
 
   const handleRemoveQuestion = (index: number) => {
+    const questionToRemove = questions[index];
+    const questionId = questionToRemove.id;
+    
     setQuestions(questions.filter((_, i) => i !== index));
+    
+    if (questionId && editingQuestion?.id === questionId) {
+      setEditingQuestion(null);
+    }
+  };
+
+  const handleEditQuestion = (question: InsertQuestion & { id?: string }) => {
+    if (!question.id) return;
+    setEditingQuestion({ question, id: question.id });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingQuestion(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -63,7 +115,7 @@ export default function AddContestantForm({ onSubmit, onCancel }: AddContestantF
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">إضافة متسابق جديد</CardTitle>
+          <CardTitle className="text-2xl">{contestant ? "تعديل المتسابق" : "إضافة متسابق جديد"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
@@ -138,7 +190,10 @@ export default function AddContestantForm({ onSubmit, onCancel }: AddContestantF
                   {questions.map((q, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-2 p-3 bg-muted/30 rounded-md"
+                      className={cn(
+                        "flex items-start gap-2 p-3 bg-muted/30 rounded-md transition-colors",
+                        editingQuestion?.id === q.id && "ring-2 ring-primary bg-primary/5"
+                      )}
                       data-testid={`question-item-${index}`}
                     >
                       <div className="flex-1">
@@ -147,14 +202,26 @@ export default function AddContestantForm({ onSubmit, onCancel }: AddContestantF
                           الإجابة الصحيحة: {q.options[q.correctAnswer]}
                         </p>
                       </div>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => handleRemoveQuestion(index)}
-                        data-testid={`button-remove-question-${index}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleEditQuestion(q)}
+                          data-testid={`button-edit-question-${index}`}
+                          title="تعديل السؤال"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleRemoveQuestion(index)}
+                          data-testid={`button-remove-question-${index}`}
+                          title="حذف السؤال"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -164,7 +231,12 @@ export default function AddContestantForm({ onSubmit, onCancel }: AddContestantF
         </CardContent>
       </Card>
 
-      <AddQuestionForm onAddQuestion={handleAddQuestion} />
+      <AddQuestionForm 
+        onAddQuestion={handleAddQuestion}
+        onUpdateQuestion={handleUpdateQuestion}
+        editingQuestion={editingQuestion}
+        onCancelEdit={handleCancelEdit}
+      />
 
       <div className="flex gap-3">
         <Button
@@ -173,8 +245,8 @@ export default function AddContestantForm({ onSubmit, onCancel }: AddContestantF
           className="flex-1"
           data-testid="button-save-contestant"
         >
-          <Plus className="ml-2 h-4 w-4" />
-          حفظ المتسابق
+          {contestant ? <Edit className="ml-2 h-4 w-4" /> : <Plus className="ml-2 h-4 w-4" />}
+          {contestant ? "حفظ التعديلات" : "حفظ المتسابق"}
         </Button>
         {onCancel && (
           <Button

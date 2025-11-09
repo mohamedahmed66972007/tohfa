@@ -8,12 +8,13 @@ import QuizPage from "@/pages/quiz";
 import AddContestantPage from "@/pages/add-contestant";
 import type { Contestant, InsertQuestion } from "@shared/schema";
 
-type Screen = "home" | "add-contestant" | "quiz";
+type Screen = "home" | "add-contestant" | "edit-contestant" | "quiz";
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [contestants, setContestants] = useState<Contestant[]>([]);
   const [selectedContestantId, setSelectedContestantId] = useState<string | null>(null);
+  const [editingContestantId, setEditingContestantId] = useState<string | null>(null);
 
   const handleAddContestant = (newContestant: {
     name: string;
@@ -36,6 +37,43 @@ function App() {
     setCurrentScreen("home");
   };
 
+  const handleEditContestant = (updatedContestant: {
+    name: string;
+    questions: InsertQuestion[];
+    randomizeQuestions: boolean;
+    randomizeOptions: boolean;
+    enableTimer: boolean;
+    timerMinutes: number;
+  }) => {
+    if (!editingContestantId) return;
+
+    const updatedContestants = contestants.map((c) => {
+      if (c.id === editingContestantId) {
+        const questionsWithIds = updatedContestant.questions.map((q: any) => {
+          if (q.id) {
+            return q;
+          }
+          
+          return {
+            ...q,
+            id: `${Date.now()}-${Math.random()}`,
+          };
+        });
+
+        return {
+          ...c,
+          ...updatedContestant,
+          questions: questionsWithIds,
+        };
+      }
+      return c;
+    });
+
+    setContestants(updatedContestants);
+    setEditingContestantId(null);
+    setCurrentScreen("home");
+  };
+
   const handleDeleteContestant = (id: string) => {
     setContestants(contestants.filter(c => c.id !== id));
   };
@@ -46,6 +84,7 @@ function App() {
   };
 
   const selectedContestant = contestants.find(c => c.id === selectedContestantId);
+  const editingContestant = contestants.find(c => c.id === editingContestantId);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -56,7 +95,8 @@ function App() {
             onAddContestant={() => setCurrentScreen("add-contestant")}
             onStartQuiz={handleStartQuiz}
             onEditContestant={(id) => {
-              console.log("Edit contestant:", id);
+              setEditingContestantId(id);
+              setCurrentScreen("edit-contestant");
             }}
             onDeleteContestant={handleDeleteContestant}
           />
@@ -66,6 +106,17 @@ function App() {
           <AddContestantPage
             onSubmit={handleAddContestant}
             onCancel={() => setCurrentScreen("home")}
+          />
+        )}
+
+        {currentScreen === "edit-contestant" && editingContestant && (
+          <AddContestantPage
+            onSubmit={handleEditContestant}
+            onCancel={() => {
+              setEditingContestantId(null);
+              setCurrentScreen("home");
+            }}
+            contestant={editingContestant}
           />
         )}
 

@@ -1,21 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
-import type { InsertQuestion } from "@shared/schema";
+import { Plus, Save, X } from "lucide-react";
+import type { InsertQuestion, Question } from "@shared/schema";
 
 interface AddQuestionFormProps {
   onAddQuestion: (question: InsertQuestion) => void;
+  onUpdateQuestion?: (question: Question) => void;
+  editingQuestion?: { question: Question | (InsertQuestion & { id?: string }); id: string } | null;
+  onCancelEdit?: () => void;
 }
 
-export default function AddQuestionForm({ onAddQuestion }: AddQuestionFormProps) {
+export default function AddQuestionForm({ 
+  onAddQuestion, 
+  onUpdateQuestion,
+  editingQuestion,
+  onCancelEdit 
+}: AddQuestionFormProps) {
   const [questionText, setQuestionText] = useState("");
   const [options, setOptions] = useState(["", "", "", ""]);
   const [correctAnswer, setCorrectAnswer] = useState<number>(0);
+
+  useEffect(() => {
+    if (editingQuestion) {
+      setQuestionText(editingQuestion.question.text);
+      setOptions(editingQuestion.question.options);
+      setCorrectAnswer(editingQuestion.question.correctAnswer);
+    } else {
+      setQuestionText("");
+      setOptions(["", "", "", ""]);
+      setCorrectAnswer(0);
+    }
+  }, [editingQuestion]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,15 +43,31 @@ export default function AddQuestionForm({ onAddQuestion }: AddQuestionFormProps)
     if (!questionText.trim()) return;
     if (options.some(opt => !opt.trim())) return;
 
-    onAddQuestion({
-      text: questionText,
-      options,
-      correctAnswer,
-    });
+    if (editingQuestion && onUpdateQuestion) {
+      onUpdateQuestion({
+        ...editingQuestion.question,
+        text: questionText,
+        options,
+        correctAnswer,
+      });
+    } else {
+      onAddQuestion({
+        text: questionText,
+        options,
+        correctAnswer,
+      });
+    }
 
     setQuestionText("");
     setOptions(["", "", "", ""]);
     setCorrectAnswer(0);
+  };
+
+  const handleCancel = () => {
+    setQuestionText("");
+    setOptions(["", "", "", ""]);
+    setCorrectAnswer(0);
+    if (onCancelEdit) onCancelEdit();
   };
 
   const handleOptionChange = (index: number, value: string) => {
@@ -45,7 +81,9 @@ export default function AddQuestionForm({ onAddQuestion }: AddQuestionFormProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">إضافة سؤال جديد</CardTitle>
+        <CardTitle className="text-xl">
+          {editingQuestion ? "تعديل السؤال" : "إضافة سؤال جديد"}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -89,15 +127,37 @@ export default function AddQuestionForm({ onAddQuestion }: AddQuestionFormProps)
             </RadioGroup>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={!questionText.trim() || options.some(opt => !opt.trim())}
-            data-testid="button-add-question"
-          >
-            <Plus className="ml-2 h-4 w-4" />
-            إضافة السؤال
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={!questionText.trim() || options.some(opt => !opt.trim())}
+              data-testid="button-add-question"
+            >
+              {editingQuestion ? (
+                <>
+                  <Save className="ml-2 h-4 w-4" />
+                  حفظ التعديلات
+                </>
+              ) : (
+                <>
+                  <Plus className="ml-2 h-4 w-4" />
+                  إضافة السؤال
+                </>
+              )}
+            </Button>
+            {editingQuestion && onCancelEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                data-testid="button-cancel-edit"
+              >
+                <X className="ml-2 h-4 w-4" />
+                إلغاء
+              </Button>
+            )}
+          </div>
         </form>
       </CardContent>
     </Card>

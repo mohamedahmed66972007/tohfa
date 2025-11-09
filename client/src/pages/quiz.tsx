@@ -62,11 +62,11 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
     if (currentQuestionIndex + 1 < quizQuestions.length) {
       setTimeout(() => {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
-      }, 2500);
+      }, 1000);
     } else {
       setTimeout(() => {
         setIsFinished(true);
-      }, 2500);
+      }, 1000);
     }
   };
 
