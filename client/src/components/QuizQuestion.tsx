@@ -86,7 +86,7 @@ export default function QuizQuestion({
   useEffect(() => {
     if (answerResult) {
       onAnswerSelected(answerResult.isCorrect);
-      setAutoAdvanceTimer(8);
+      setAutoAdvanceTimer(5);
       setAnswerResult(null);
     }
   }, [answerResult, onAnswerSelected]);
@@ -399,24 +399,14 @@ export default function QuizQuestion({
         })}
       </div>
 
-      {/* Next button - appears after answering */}
+      {/* Auto-advance message - appears after answering */}
       {showResult && autoAdvanceTimer !== null && (
         <div className="mt-10 flex flex-col items-center gap-4">
-          <button
-            onClick={handleNext}
-            className="px-12 py-4 text-xl font-bold rounded-lg transition-all duration-300 hover:scale-105"
-            style={{
-              background: 'linear-gradient(to right, #10b981 0%, #059669 100%)',
-              border: '2px solid #34d399',
-              boxShadow: '0 0 30px rgba(16, 185, 129, 0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
-              color: '#ffffff',
-              textShadow: '0 1px 2px rgba(0, 0, 0, 0.6)'
-            }}
-          >
-            التالي
-          </button>
-          <p className="text-sm text-gray-400">
-            الانتقال التلقائي خلال {autoAdvanceTimer} ثانية
+          <p className="text-lg font-semibold" style={{
+            color: '#d8a863',
+            textShadow: '0 0 20px rgba(216, 168, 99, 0.6)'
+          }}>
+            الانتقال التلقائي خلال {autoAdvanceTimer} ثوانٍ
           </p>
         </div>
       )}
