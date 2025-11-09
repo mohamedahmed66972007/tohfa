@@ -9,7 +9,7 @@ export const questionSchema = z.object({
 
 export const contestantSchema = z.object({
   id: z.string(),
-  name: z.string().min(1, "اسم المتسابق مطلوب"),
+  name: z.string().min(1, "اسم النموذج مطلوب"),
   questions: z.array(questionSchema),
   randomizeQuestions: z.boolean(),
   randomizeOptions: z.boolean(),

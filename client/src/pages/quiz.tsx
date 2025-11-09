@@ -35,7 +35,7 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
 
   const { fadeOut } = useBackgroundMusic({
     src: backgroundMusicSrc,
-    volume: 0.5,
+    volume: 0.7,
     fadeOutDuration: 2500
   });
 
@@ -75,20 +75,15 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
   const handleAnswerSelected = (isCorrect: boolean) => {
     if (isCorrect) {
       setCorrectAnswers(correctAnswers + 1);
-      playSound(correctSoundSrc); // Play correct sound
-    } else {
-      playSound(incorrectSoundSrc); // Play incorrect sound
     }
+  };
 
+  const handleNext = () => {
     if (currentQuestionIndex + 1 < quizQuestions.length) {
-      setTimeout(() => {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-      }, 1000);
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      setTimeout(() => {
-        fadeOut();
-        setIsFinished(true);
-      }, 1000);
+      fadeOut();
+      setIsFinished(true);
     }
   };
 
@@ -123,12 +118,45 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
   const currentQuestion = quizQuestions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-accent/10 to-background">
+    <div className="min-h-screen relative overflow-hidden" style={{
+      background: 'radial-gradient(ellipse at center, #1a2540 0%, #0b1228 50%, #050a16 100%)'
+    }}>
+      {/* Vignette overlay */}
+      <div className="fixed inset-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%)'
+      }} />
+
+      {/* Animated spotlight effect */}
+      <div className="fixed inset-0 pointer-events-none opacity-20">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[120px]" style={{
+          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%)'
+        }} />
+      </div>
+
       <Header />
 
-      <main className="container mx-auto px-4 pt-32 pb-12">
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-primary" data-testid="text-contestant-name">
+      <main className="container mx-auto px-4 pt-24 pb-12 relative z-10">
+        {/* Progress bar with golden gradient - moved to top */}
+        <div className="mb-6 h-3 bg-black/40 border border-amber-500/30 rounded-full overflow-hidden">
+          <div
+            className="h-full transition-all duration-500 relative overflow-hidden"
+            style={{
+              width: `${((currentQuestionIndex + 1) / quizQuestions.length) * 100}%`,
+              background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%)',
+              boxShadow: '0 0 20px rgba(251, 191, 36, 0.6), inset 0 1px 0 rgba(255,255,255,0.3)'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+          </div>
+        </div>
+
+        <div className="mb-12 text-center">
+          <h2 className="text-3xl font-bold tracking-wide mb-2" style={{
+            background: 'linear-gradient(to right, #fbbf24, #f59e0b, #fbbf24)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 0 30px rgba(251, 191, 36, 0.5)'
+          }} data-testid="text-contestant-name">
             {contestant.name}
           </h2>
         </div>
@@ -141,6 +169,7 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
           options={currentQuestion.options}
           correctAnswer={currentQuestion.correctAnswer}
           onAnswerSelected={handleAnswerSelected}
+          onNext={handleNext}
           onLifelineUsed={handleLifelineUsed}
           canUseFiftyFifty={!usedFiftyFifty}
           canUsePhoneFriend={!usedPhoneFriend}
@@ -148,15 +177,6 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
           onTimerEnd={handleTimerEnd}
         />
       </main>
-
-      <div className="fixed bottom-0 left-0 right-0 h-2 bg-muted/30">
-        <div
-          className="h-full bg-gradient-to-r from-primary via-accent to-primary transition-all duration-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]"
-          style={{
-            width: `${((currentQuestionIndex + 1) / quizQuestions.length) * 100}%`,
-          }}
-        />
-      </div>
     </div>
   );
 }

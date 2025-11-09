@@ -1,14 +1,10 @@
 import { useRef, useCallback } from "react";
 
-interface UseSoundEffectOptions {
-  volume?: number;
-}
-
-export function useSoundEffect({ volume = 0.5 }: UseSoundEffectOptions = {}) {
+export function useSoundEffect() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeIntervalRef = useRef<number | null>(null);
 
-  const play = useCallback((src: string) => {
+  const play = useCallback((src: string, volume: number = 0.5) => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -25,7 +21,7 @@ export function useSoundEffect({ volume = 0.5 }: UseSoundEffectOptions = {}) {
     audio.play().catch((error) => {
       console.error("Failed to play sound effect:", error);
     });
-  }, [volume]);
+  }, []);
 
   const stop = () => {
     if (audioRef.current) {

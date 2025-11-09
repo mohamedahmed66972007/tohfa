@@ -33,17 +33,17 @@ export default function HomePage({
             data-testid="button-add-contestant"
           >
             <Plus className="ml-2 h-5 w-5" />
-            إضافة متسابق جديد
+            إضافة نموذج جديد
           </Button>
         </div>
 
         {contestants.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-xl text-muted-foreground mb-6">
-              لا يوجد متسابقين بعد
+              لا يوجد نماذج بعد
             </p>
             <p className="text-muted-foreground">
-              ابدأ بإضافة متسابقك الأول والأسئلة الخاصة به
+              ابدأ بإضافة نموذجك الأول والأسئلة الخاصة به
             </p>
           </div>
         ) : (

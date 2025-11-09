@@ -14,6 +14,7 @@ interface QuizQuestionProps {
   options: string[];
   correctAnswer: number;
   onAnswerSelected: (isCorrect: boolean) => void;
+  onNext?: () => void;
   onLifelineUsed?: (lifeline: "fifty-fifty" | "phone-friend") => void;
   canUseFiftyFifty?: boolean;
   canUsePhoneFriend?: boolean;
@@ -30,6 +31,7 @@ export default function QuizQuestion({
   options,
   correctAnswer,
   onAnswerSelected,
+  onNext,
   onLifelineUsed,
   canUseFiftyFifty = true,
   canUsePhoneFriend = true,
@@ -42,8 +44,10 @@ export default function QuizQuestion({
   const [showPhoneFriend, setShowPhoneFriend] = useState(false);
   const [phoneFriendTimer, setPhoneFriendTimer] = useState(30);
   const [remainingTime, setRemainingTime] = useState(timerSeconds);
+  const [autoAdvanceTimer, setAutoAdvanceTimer] = useState<number | null>(null);
+  const [answerResult, setAnswerResult] = useState<{isCorrect: boolean} | null>(null);
 
-  const { play: playSoundEffect, stop: stopSoundEffect, fade: fadeSoundEffect } = useSoundEffect({ volume: 0.7 });
+  const soundEffect = useSoundEffect();
 
   useEffect(() => {
     if (timerSeconds && remainingTime !== undefined && remainingTime > 0 && !showResult) {
@@ -79,6 +83,31 @@ export default function QuizQuestion({
     }
   }, [showPhoneFriend, phoneFriendTimer]);
 
+  useEffect(() => {
+    if (answerResult) {
+      onAnswerSelected(answerResult.isCorrect);
+      setAutoAdvanceTimer(8);
+      setAnswerResult(null);
+    }
+  }, [answerResult, onAnswerSelected]);
+
+  useEffect(() => {
+    if (autoAdvanceTimer !== null && autoAdvanceTimer > 0) {
+      const timer = setInterval(() => {
+        setAutoAdvanceTimer((prev) => {
+          if (prev === null || prev <= 1) {
+            clearInterval(timer);
+            if (onNext) onNext();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [autoAdvanceTimer, onNext]);
+
   const handleFiftyFifty = () => {
     if (!canUseFiftyFifty || removedOptions.length > 0) return;
 
@@ -92,7 +121,7 @@ export default function QuizQuestion({
 
   const handlePhoneFriend = () => {
     if (!canUsePhoneFriend) return;
-    playSoundEffect(phoneFriendSrc);
+    soundEffect.play(phoneFriendSrc, 0.099);
     setShowPhoneFriend(true);
     setPhoneFriendTimer(30);
     if (onLifelineUsed) onLifelineUsed("phone-friend");
@@ -102,7 +131,7 @@ export default function QuizQuestion({
     if (selectedAnswer !== null || showResult || removedOptions.includes(index)) return;
 
     if (showPhoneFriend) {
-      fadeSoundEffect(1500);
+      soundEffect.fadeOut(1500);
       setShowPhoneFriend(false);
     }
 
@@ -112,14 +141,18 @@ export default function QuizQuestion({
     const isCorrect = index === correctAnswer;
 
     if (isCorrect) {
-      playSoundEffect(correctAnswerSrc);
+      soundEffect.play(correctAnswerSrc, 0.85);
     } else {
-      playSoundEffect(wrongAnswerSrc);
+      soundEffect.play(wrongAnswerSrc, 0.85);
     }
 
-    setTimeout(() => {
-      onAnswerSelected(isCorrect);
-    }, 1500);
+    setAnswerResult({ isCorrect });
+  };
+
+  const handleNext = () => {
+    if (onNext) {
+      onNext();
+    }
   };
 
   const formatTime = (seconds: number | undefined) => {
@@ -130,77 +163,168 @@ export default function QuizQuestion({
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4">
-      <div className="mb-8 flex items-center justify-between">
-        <p className="text-primary text-lg font-semibold" data-testid="text-question-counter">
+    <div className="w-full max-w-6xl mx-auto px-4">
+      {/* Console-style top bar */}
+      <div className="mb-10 flex items-center justify-between px-6 py-4 rounded-lg relative overflow-hidden" style={{
+        background: 'linear-gradient(135deg, rgba(24, 24, 49, 0.95) 0%, rgba(49, 29, 77, 0.95) 100%)',
+        border: '2px solid rgba(216, 168, 99, 0.4)',
+        boxShadow: '0 0 30px rgba(139, 92, 246, 0.25), inset 0 1px 0 rgba(255,255,255,0.1)'
+      }}>
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-600/8 via-purple-600/12 to-violet-600/8" />
+        <p className="text-lg font-bold tracking-wider z-10" style={{
+          background: 'linear-gradient(to right, #d8a863, #e9c185)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }} data-testid="text-question-counter">
           السؤال {questionNumber} من {totalQuestions}
         </p>
         {timerSeconds && remainingTime !== undefined && (
           <div className={cn(
-            "text-lg font-bold px-4 py-2 rounded-md",
-            remainingTime <= 10 ? "text-red-500 animate-pulse" : "text-primary"
-          )}>
+            "text-xl font-bold px-6 py-2 rounded-md z-10 tracking-wider",
+            remainingTime <= 10 
+              ? "text-red-400 animate-pulse" 
+              : ""
+          )} style={{
+            color: remainingTime <= 10 ? '#ef4444' : '#d8a863',
+            textShadow: remainingTime <= 10 
+              ? '0 0 20px rgba(239, 68, 68, 0.8)' 
+              : '0 0 20px rgba(216, 168, 99, 0.6)'
+          }}>
             {formatTime(remainingTime)}
           </div>
         )}
       </div>
 
-      <div className="mb-8 flex gap-3 justify-center">
+      {/* Mobile lifelines - horizontal at top - only visible on mobile */}
+      <div className="md:hidden mb-6 flex gap-3 justify-center w-full px-2">
         <Button
           variant="outline"
           onClick={handleFiftyFifty}
           disabled={!canUseFiftyFifty || removedOptions.length > 0}
-          data-testid="button-fifty-fifty"
+          data-testid="button-fifty-fifty-mobile"
           className={cn(
-            "bg-card/50 backdrop-blur-md border-2 border-primary/40",
-            (!canUseFiftyFifty || removedOptions.length > 0) && "opacity-40"
+            "px-4 py-3 text-sm font-semibold tracking-wide relative overflow-hidden transition-all duration-300 flex flex-col items-center gap-1.5 min-w-[100px]",
+            (!canUseFiftyFifty || removedOptions.length > 0) && "opacity-40 cursor-not-allowed"
           )}
+          style={{
+            background: 'linear-gradient(135deg, rgba(24, 24, 49, 0.95) 0%, rgba(49, 29, 77, 0.95) 100%)',
+            border: '2px solid rgba(216, 168, 99, 0.6)',
+            boxShadow: '0 0 20px rgba(216, 168, 99, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+          }}
         >
-          <MinusCircle className="ml-2 h-5 w-5" />
-          حذف إجابتين
+          <MinusCircle className="h-5 w-5" />
+          <span className="text-center leading-tight text-xs">حذف<br/>إجابتين</span>
         </Button>
         <Button
           variant="outline"
           onClick={handlePhoneFriend}
           disabled={!canUsePhoneFriend}
-          data-testid="button-phone-friend"
+          data-testid="button-phone-friend-mobile"
           className={cn(
-            "bg-card/50 backdrop-blur-md border-2 border-primary/40",
-            !canUsePhoneFriend && "opacity-40"
+            "px-4 py-3 text-sm font-semibold tracking-wide relative overflow-hidden transition-all duration-300 flex flex-col items-center gap-1.5 min-w-[100px]",
+            !canUsePhoneFriend && "opacity-40 cursor-not-allowed"
           )}
+          style={{
+            background: 'linear-gradient(135deg, rgba(24, 24, 49, 0.95) 0%, rgba(49, 29, 77, 0.95) 100%)',
+            border: '2px solid rgba(216, 168, 99, 0.6)',
+            boxShadow: '0 0 20px rgba(216, 168, 99, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+          }}
         >
-          <Users className="ml-2 h-5 w-5" />
-          الاستعانة ب صديق
+          <Users className="h-5 w-5" />
+          <span className="text-center leading-tight text-xs">الاستعانة<br/>بصديق</span>
         </Button>
       </div>
 
+      {/* Main content area with lifelines on the side (desktop only) */}
+      <div className="flex gap-6 items-start">
+        {/* Lifeline buttons - vertical on the left side - only visible on desktop */}
+        <div className="hidden md:flex flex-col gap-4 flex-shrink-0">
+          <Button
+            variant="outline"
+            onClick={handleFiftyFifty}
+            disabled={!canUseFiftyFifty || removedOptions.length > 0}
+            data-testid="button-fifty-fifty"
+            className={cn(
+              "px-5 py-4 text-sm font-semibold tracking-wide relative overflow-hidden transition-all duration-300 flex flex-col items-center gap-2 min-w-[120px]",
+              (!canUseFiftyFifty || removedOptions.length > 0) && "opacity-40 cursor-not-allowed"
+            )}
+            style={{
+              background: 'linear-gradient(135deg, rgba(24, 24, 49, 0.95) 0%, rgba(49, 29, 77, 0.95) 100%)',
+              border: '2px solid rgba(216, 168, 99, 0.6)',
+              boxShadow: '0 0 20px rgba(216, 168, 99, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+            }}
+          >
+            <MinusCircle className="h-6 w-6" />
+            <span className="text-center leading-tight">حذف<br/>إجابتين</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handlePhoneFriend}
+            disabled={!canUsePhoneFriend}
+            data-testid="button-phone-friend"
+            className={cn(
+              "px-5 py-4 text-sm font-semibold tracking-wide relative overflow-hidden transition-all duration-300 flex flex-col items-center gap-2 min-w-[120px]",
+              !canUsePhoneFriend && "opacity-40 cursor-not-allowed"
+            )}
+            style={{
+              background: 'linear-gradient(135deg, rgba(24, 24, 49, 0.95) 0%, rgba(49, 29, 77, 0.95) 100%)',
+              border: '2px solid rgba(216, 168, 99, 0.6)',
+              boxShadow: '0 0 20px rgba(216, 168, 99, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
+            }}
+          >
+            <Users className="h-6 w-6" />
+            <span className="text-center leading-tight">الاستعانة<br/>بصديق</span>
+          </Button>
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 w-full">
+
+      {/* Phone-a-friend panel with enhanced styling */}
       {showPhoneFriend && (
-        <div className="mb-8 bg-accent/20 border-2 border-accent rounded-lg p-6 text-center">
-          <p className="text-2xl font-bold text-accent mb-2">اتصال بصديق...</p>
-          <p className="text-4xl font-bold text-foreground">{phoneFriendTimer} ثانية</p>
+        <div className="mb-6 md:mb-10 rounded-lg p-4 md:p-8 text-center relative overflow-hidden" style={{
+          background: 'linear-gradient(135deg, rgba(24, 24, 49, 0.95) 0%, rgba(49, 29, 77, 0.95) 100%)',
+          border: '3px solid rgba(216, 168, 99, 0.7)',
+          boxShadow: '0 0 40px rgba(216, 168, 99, 0.5), inset 0 2px 0 rgba(255,255,255,0.1)'
+        }}>
+          <div className="absolute inset-0 bg-gradient-to-r from-violet-600/5 via-purple-600/8 to-violet-600/5" />
+          <p className="text-xl md:text-3xl font-bold mb-2 md:mb-3 z-10 relative" style={{
+            color: '#d8a863',
+            textShadow: '0 0 20px rgba(216, 168, 99, 0.6)'
+          }}>اتصال بصديق...</p>
+          <p className="text-3xl md:text-5xl font-bold z-10 relative" style={{
+            color: '#e9c185',
+            textShadow: '0 0 30px rgba(233, 193, 133, 0.8)'
+          }}>{phoneFriendTimer} ثانية</p>
         </div>
       )}
 
-      <div className="mb-12 relative">
+      {/* Question card - simpler design like the real show */}
+      <div className="mb-8 md:mb-12 relative">
+        {/* Subtle spotlight background */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full blur-[80px] -z-10 opacity-20" style={{
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.5) 0%, transparent 70%)'
+        }} />
+        
         <div 
-          className="relative bg-gradient-to-r from-card/80 via-card/60 to-card/80 backdrop-blur-md border-2 border-primary/50 p-8 shadow-2xl"
+          className="relative px-4 py-6 md:px-12 md:py-8 rounded-xl"
           style={{
-            clipPath: "polygon(2% 0%, 98% 0%, 100% 50%, 98% 100%, 2% 100%, 0% 50%)",
+            background: 'linear-gradient(to bottom, rgba(24, 24, 49, 0.95) 0%, rgba(49, 29, 77, 0.95) 100%)',
+            border: '2px solid',
+            borderColor: '#d8a863',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(216, 168, 99, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
           }}
         >
-          <p className="text-2xl md:text-3xl font-bold text-center text-foreground" data-testid="text-question">
+          <p className="text-lg md:text-2xl lg:text-3xl font-bold text-center leading-relaxed" style={{
+            color: '#ffffff',
+            textShadow: '0 2px 4px rgba(0, 0, 0, 0.6)'
+          }} data-testid="text-question">
             {questionText}
           </p>
-          <div className="absolute inset-0 border-2 border-primary/30 blur-sm" 
-            style={{
-              clipPath: "polygon(2% 0%, 98% 0%, 100% 50%, 98% 100%, 2% 100%, 0% 50%)",
-            }}
-          />
         </div>
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 blur-3xl -z-10" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5">
         {options.map((option, index) => {
           const isSelected = selectedAnswer === index;
           const isCorrect = index === correctAnswer;
@@ -209,49 +333,94 @@ export default function QuizQuestion({
           const isRemoved = removedOptions.includes(index);
 
           if (isRemoved) {
-            return <div key={index} className="h-[80px]" />;
+            return <div key={index} className="h-[60px] md:h-[70px]" />;
           }
 
           return (
-            <Button
+            <button
               key={index}
-              variant="outline"
               onClick={() => handleAnswerClick(index)}
               disabled={showResult}
               data-testid={`button-option-${index}`}
               className={cn(
-                "h-auto min-h-[80px] relative overflow-visible group transition-all duration-300",
-                "bg-gradient-to-r from-card/40 via-card/60 to-card/40 backdrop-blur-sm border-2",
-                !showResult && "hover:border-primary hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]",
-                showCorrect && "border-green-500 bg-green-500/20 shadow-[0_0_30px_rgba(34,197,94,0.6)]",
-                showWrong && "border-red-500 bg-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.6)]",
-                !showResult && !isSelected && "border-primary/40"
+                "h-auto min-h-[60px] md:min-h-[70px] relative overflow-hidden transition-all duration-300 rounded-lg px-3 py-3 md:px-6 md:py-4",
+                !showResult && "hover:brightness-110 cursor-pointer active:scale-95",
+                showResult && "cursor-default"
               )}
               style={{
-                clipPath: "polygon(3% 0%, 97% 0%, 100% 50%, 97% 100%, 3% 100%, 0% 50%)",
+                background: showCorrect 
+                  ? 'linear-gradient(to right, #10b981 0%, #059669 100%)'
+                  : showWrong
+                  ? 'linear-gradient(to right, #ef4444 0%, #dc2626 100%)'
+                  : 'linear-gradient(to right, #4c1d95 0%, #5b21b6 50%, #4c1d95 100%)',
+                border: showCorrect 
+                  ? '2px solid #34d399'
+                  : showWrong
+                  ? '2px solid #f87171'
+                  : '2px solid #7c3aed',
+                boxShadow: showCorrect
+                  ? '0 0 30px rgba(16, 185, 129, 0.6), inset 0 1px 0 rgba(255,255,255,0.2)'
+                  : showWrong
+                  ? '0 0 30px rgba(239, 68, 68, 0.6), inset 0 1px 0 rgba(255,255,255,0.2)'
+                  : '0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1)'
               }}
             >
-              <div className="flex items-center gap-4 w-full px-6">
+              <div className="flex items-center gap-2 md:gap-4 w-full">
                 <div
-                  className={cn(
-                    "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl transition-all",
-                    "bg-primary/20 text-primary border-2 border-primary/60",
-                    showCorrect && "bg-green-500 text-white border-green-400 shadow-[0_0_15px_rgba(34,197,94,0.8)]",
-                    showWrong && "bg-red-500 text-white border-red-400 shadow-[0_0_15px_rgba(239,68,68,0.8)]"
-                  )}
+                  className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-base md:text-lg transition-all"
+                  style={{
+                    background: showCorrect 
+                      ? '#ffffff' 
+                      : showWrong 
+                      ? '#ffffff'
+                      : '#d8a863',
+                    color: showCorrect 
+                      ? '#10b981'
+                      : showWrong
+                      ? '#ef4444'
+                      : '#4c1d95',
+                    border: '2px solid',
+                    borderColor: showCorrect ? '#10b981' : showWrong ? '#ef4444' : '#d8a863',
+                    boxShadow: showCorrect || showWrong ? '0 0 15px rgba(255,255,255,0.5)' : 'none'
+                  }}
                 >
-                  {showCorrect ? <Check className="h-7 w-7" /> : showWrong ? <X className="h-7 w-7" /> : optionLabels[index]}
+                  {showCorrect ? <Check className="h-5 w-5 md:h-6 md:w-6" /> : showWrong ? <X className="h-5 w-5 md:h-6 md:w-6" /> : optionLabels[index]}
                 </div>
-                <span className="text-lg font-semibold text-right flex-1">{option}</span>
+                <span className="text-sm md:text-lg font-semibold text-right flex-1" style={{
+                  color: '#ffffff',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.6)'
+                }}>{option}</span>
               </div>
               {showCorrect && (
-                <div className="absolute inset-0 bg-green-500/10 animate-pulse" 
-                  style={{ clipPath: "polygon(3% 0%, 97% 0%, 100% 50%, 97% 100%, 3% 100%, 0% 50%)" }} 
-                />
+                <div className="absolute inset-0 bg-white/10 animate-pulse rounded-lg" />
               )}
-            </Button>
+            </button>
           );
         })}
+      </div>
+
+      {/* Next button - appears after answering */}
+      {showResult && autoAdvanceTimer !== null && (
+        <div className="mt-10 flex flex-col items-center gap-4">
+          <button
+            onClick={handleNext}
+            className="px-12 py-4 text-xl font-bold rounded-lg transition-all duration-300 hover:scale-105"
+            style={{
+              background: 'linear-gradient(to right, #10b981 0%, #059669 100%)',
+              border: '2px solid #34d399',
+              boxShadow: '0 0 30px rgba(16, 185, 129, 0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
+              color: '#ffffff',
+              textShadow: '0 1px 2px rgba(0, 0, 0, 0.6)'
+            }}
+          >
+            التالي
+          </button>
+          <p className="text-sm text-gray-400">
+            الانتقال التلقائي خلال {autoAdvanceTimer} ثانية
+          </p>
+        </div>
+      )}
+        </div>
       </div>
     </div>
   );

@@ -43,7 +43,7 @@
   --chart-3: 180 80% 50%;
   --chart-4: 280 85% 60%;
   --chart-5: 15 90% 58%;
-  --font-sans: Cairo, Tajawal, sans-serif;
+  --font-sans: 'Noto Kufi Arabic', 'Changa', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: .5rem;

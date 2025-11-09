@@ -132,27 +132,55 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
 
-**Replit Environment Setup:**
-- Configured Vite dev server to allow Replit proxy hosts (.replit.dev, .repl.co)
+**Replit Environment Setup (November 9, 2025):**
+- Configured Vite dev server with `allowedHosts: true` for Replit proxy compatibility
 - Set up development workflow on port 5000 (both frontend and backend)
 - Created .gitignore for Node.js project
 - Configured deployment for autoscale (stateless web app)
-- Currently using in-memory storage (database not provisioned)
+- Database provisioned (PostgreSQL via Neon) - using db-storage.ts
+- Fixed all import/configuration issues for Replit environment
 
-**Audio Integration (November 9, 2025):**
-- Added background music playback system with looping and fade-out
-- Integrated "Who Wants to Be a Millionaire" theme music for quiz atmosphere
-- Added phone-a-friend lifeline sound effect
+**Audio Enhancements (November 9, 2025):**
+- Fixed audio hook error: corrected `fade` to `fadeOut` in useSoundEffect
+- Refactored `useSoundEffect` to accept volume as a parameter in play() function
+- Single hook instance manages all sound effects (avoids React Hooks violations)
+- Adjusted audio volumes for better balance:
+  - Phone-a-friend sound: reduced to 20% (was too loud)
+  - Correct/wrong answer sounds: increased to 85% (more impact)
+  - Background music: increased to 70% (more presence)
+- All sound effects working correctly with proper fade-out on answer selection
 - Created custom React hooks for audio management:
   - `useBackgroundMusic`: Handles looping background music with fade-out functionality
-  - `useSoundEffect`: Manages one-time sound effect playback
+  - `useSoundEffect`: Manages one-time sound effect playback with runtime volume control
+
+**Major Design Overhaul (November 9, 2025):**
+Completely redesigned quiz interface to match "Who Wants to Be a Millionaire" aesthetic:
+- **Background**: Deep midnight blue radial gradient (#1a2540 → #0b1228 → #050a16) with vignette overlay
+- **Spotlight Effects**: Animated blue spotlight behind question cards with blur effects
+- **Golden Accents**: All borders and highlights use golden gradient (#fbbf24 → #f59e0b)
+- **Question Card**: Enhanced with:
+  - Deep blue gradient background (#0b1a3a → #132f69)
+  - 3px golden gradient border with glow effect
+  - Larger text (2xl-4xl) with improved readability
+  - Spotlight halo effect behind card
+- **Answer Buttons**: Completely redesigned with:
+  - Metallic borders (3px gradient: blue → purple → blue)
+  - Inner glow and shadow effects
+  - Golden circular answer labels (أ، ب، ج، د) with gradient
+  - Larger size (90px min-height) for better presence
+  - Enhanced hover effects with scale transform
+  - Dramatic green/red glow on correct/wrong answers
+- **Lifeline Buttons**: Console-style dark background with golden borders and glow
+- **Timer Display**: Golden text with glow effect, red pulsing when <10 seconds
+- **Progress Bar**: Golden gradient with metallic shine and pulse animation
+- **Console Bar**: Top bar with blue-purple gradient showing question progress
+- **Typography**: Increased font sizes and added text shadows for depth
 
 **Data Persistence (November 9, 2025):**
-- Switched from in-memory storage to file-based storage
-- Created FileStorage class that persists data to JSON file
-- Data now survives server restarts
-- Contestants stored in `data/contestants.json`
-- Added `data/` directory to `.gitignore`
+- Switched from in-memory storage to database storage
+- Using DbStorage class (db-storage.ts) with PostgreSQL via Neon
+- Data persists across server restarts
+- Automatic database initialization on first run
 
 ## External Dependencies
 

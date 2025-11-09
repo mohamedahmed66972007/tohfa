@@ -115,16 +115,16 @@ export default function AddContestantForm({ onSubmit, onCancel, contestant }: Ad
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{contestant ? "تعديل المتسابق" : "إضافة متسابق جديد"}</CardTitle>
+          <CardTitle className="text-2xl">{contestant ? "تعديل النموذج" : "إضافة نموذج جديد"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="contestant-name">اسم المتسابق</Label>
+            <Label htmlFor="contestant-name">اسم النموذج</Label>
             <Input
               id="contestant-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="أدخل اسم المتسابق..."
+              placeholder="أدخل اسم النموذج..."
               data-testid="input-contestant-name"
             />
           </div>
@@ -246,7 +246,7 @@ export default function AddContestantForm({ onSubmit, onCancel, contestant }: Ad
           data-testid="button-save-contestant"
         >
           {contestant ? <Edit className="ml-2 h-4 w-4" /> : <Plus className="ml-2 h-4 w-4" />}
-          {contestant ? "حفظ التعديلات" : "حفظ المتسابق"}
+          {contestant ? "حفظ التعديلات" : "حفظ النموذج"}
         </Button>
         {onCancel && (
           <Button
