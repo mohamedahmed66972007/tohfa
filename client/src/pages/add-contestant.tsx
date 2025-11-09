@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import type { InsertQuestion, Contestant } from "@shared/schema";
 
 interface AddContestantPageProps {
-  onSubmit: (contestant: {
+  onSave: (contestant: {
     name: string;
     questions: InsertQuestion[];
     randomizeQuestions: boolean;
@@ -12,21 +12,32 @@ interface AddContestantPageProps {
     timerMinutes: number;
   }) => void;
   onCancel: () => void;
-  contestant?: Contestant;
+  editingContestant?: Contestant;
 }
 
 export default function AddContestantPage({
-  onSubmit,
+  onSave,
   onCancel,
-  contestant,
+  editingContestant,
 }: AddContestantPageProps) {
+  const handleFormSubmit = (data: {
+    name: string;
+    questions: InsertQuestion[];
+    randomizeQuestions: boolean;
+    randomizeOptions: boolean;
+    enableTimer: boolean;
+    timerMinutes: number;
+  }) => {
+    onSave(data);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-background">
       <Header />
       
       <main className="container mx-auto px-4 pt-24 pb-12">
         <div className="max-w-4xl mx-auto">
-          <AddContestantForm onSubmit={onSubmit} onCancel={onCancel} contestant={contestant} />
+          <AddContestantForm onSubmit={handleFormSubmit} onCancel={onCancel} contestant={editingContestant} />
         </div>
       </main>
     </div>
