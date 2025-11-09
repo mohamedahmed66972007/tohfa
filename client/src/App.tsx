@@ -1,79 +1,159 @@
 
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { useState, useEffect } from "react";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import HomePage from "@/pages/home";
+import QuizPage from "@/pages/quiz";
+import AddContestantPage from "@/pages/add-contestant";
+import type { Contestant, InsertQuestion } from "@shared/schema";
+import { randomUUID } from "crypto";
 
-const app = express();
+type Page = "home" | "quiz" | "add-contestant" | "edit-contestant";
 
-declare module 'http' {
-  interface IncomingMessage {
-    rawBody: unknown
+const STORAGE_KEY = "quiz-contestants";
+
+// دالة لحفظ البيانات في localStorage
+function saveToLocalStorage(contestants: Contestant[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(contestants));
+}
+
+// دالة لتحميل البيانات من localStorage
+function loadFromLocalStorage(): Contestant[] {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (!data) return [];
+  try {
+    return JSON.parse(data);
+  } catch {
+    return [];
   }
 }
-app.use(express.json({
-  verify: (req, _res, buf) => {
-    req.rawBody = buf;
-  }
-}));
-app.use(express.urlencoded({ extended: false }));
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+function App() {
+  const [currentPage, setCurrentPage] = useState<Page>("home");
+  const [contestants, setContestants] = useState<Contestant[]>([]);
+  const [currentContestantId, setCurrentContestantId] = useState<string | null>(null);
+  const [editingContestantId, setEditingContestantId] = useState<string | null>(null);
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+  // تحميل البيانات من localStorage عند بدء التطبيق
+  useEffect(() => {
+    const savedContestants = loadFromLocalStorage();
+    setContestants(savedContestants);
+  }, []);
+
+  const handleAddContestant = () => {
+    setEditingContestantId(null);
+    setCurrentPage("add-contestant");
   };
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+  const handleEditContestant = (id: string) => {
+    setEditingContestantId(id);
+    setCurrentPage("edit-contestant");
+  };
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
-
-(async () => {
-  const server = registerRoutes(app);
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  
-  server.listen(port, "0.0.0.0", async () => {
-    log(`serving on port ${port}`);
-    
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
+  const handleSaveContestant = (
+    name: string,
+    questions: InsertQuestion[],
+    randomizeQuestions: boolean,
+    randomizeOptions: boolean,
+    enableTimer: boolean,
+    timerMinutes: number,
+    editingId?: string
+  ) => {
+    if (editingId) {
+      // تحديث contestant موجود
+      const updatedContestants = contestants.map((c) => {
+        if (c.id === editingId) {
+          return {
+            ...c,
+            name,
+            questions: questions.map((q, index) => ({
+              ...q,
+              id: `${editingId}-q-${index}`,
+            })),
+            randomizeQuestions,
+            randomizeOptions,
+            enableTimer,
+            timerMinutes,
+          };
+        }
+        return c;
+      });
+      setContestants(updatedContestants);
+      saveToLocalStorage(updatedContestants);
     } else {
-      serveStatic(app);
+      // إضافة contestant جديد
+      const id = crypto.randomUUID();
+      const newContestant: Contestant = {
+        id,
+        name,
+        questions: questions.map((q, index) => ({
+          ...q,
+          id: `${id}-q-${index}`,
+        })),
+        randomizeQuestions,
+        randomizeOptions,
+        enableTimer,
+        timerMinutes,
+      };
+      const updatedContestants = [...contestants, newContestant];
+      setContestants(updatedContestants);
+      saveToLocalStorage(updatedContestants);
     }
-  });
-})();
+    setCurrentPage("home");
+  };
+
+  const handleDeleteContestant = (id: string) => {
+    const updatedContestants = contestants.filter((c) => c.id !== id);
+    setContestants(updatedContestants);
+    saveToLocalStorage(updatedContestants);
+  };
+
+  const handleStartQuiz = (contestantId: string) => {
+    setCurrentContestantId(contestantId);
+    setCurrentPage("quiz");
+  };
+
+  const handleQuizComplete = () => {
+    setCurrentContestantId(null);
+    setCurrentPage("home");
+  };
+
+  const handleCancelAddContestant = () => {
+    setEditingContestantId(null);
+    setCurrentPage("home");
+  };
+
+  const currentContestant = contestants.find((c) => c.id === currentContestantId);
+  const editingContestant = contestants.find((c) => c.id === editingContestantId);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        {currentPage === "home" && (
+          <HomePage
+            contestants={contestants}
+            onAddContestant={handleAddContestant}
+            onStartQuiz={handleStartQuiz}
+            onEditContestant={handleEditContestant}
+            onDeleteContestant={handleDeleteContestant}
+          />
+        )}
+        {currentPage === "quiz" && currentContestant && (
+          <QuizPage contestant={currentContestant} onComplete={handleQuizComplete} />
+        )}
+        {(currentPage === "add-contestant" || currentPage === "edit-contestant") && (
+          <AddContestantPage
+            onSave={handleSaveContestant}
+            onCancel={handleCancelAddContestant}
+            editingContestant={editingContestant}
+          />
+        )}
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
