@@ -46,9 +46,19 @@ Preferred communication style: Simple, everyday language.
 **Current Implementation:**
 - **File-Based Storage**: FileStorage class implementing IStorage interface
 - **Persistent Data**: Contestants saved to `data/contestants.json` file
-- **Storage Interface**: Defines CRUD operations for contestants (get, getAll, create, delete)
+- **Share Codes**: Share codes stored in `data/share-codes.json` file
+- **Storage Interface**: Defines CRUD operations for contestants (get, getAll, create, delete) plus sharing (createShareCode, importFromShareCode)
 - **Data Models**: Contestants contain name, questions array, randomization flags, and timer settings
 - **Server Setup**: Express server with JSON parsing, logging middleware, and route registration structure
+
+**Share Link System:**
+- Client-side URL-based sharing system (no server API needed)
+- Format: `${origin}${pathname}#data=${base64EncodedData}`
+- Base64 encoding includes contestant name and all questions with Arabic text support
+- Links work across different devices and browsers
+- No expiration - links are self-contained with all data
+- Imported contestants get new IDs and are saved to the importing user's localStorage
+- Data extraction supports both full URLs and bare base64 strings
 
 **Planned Database Integration:**
 - Drizzle ORM configured for PostgreSQL via Neon serverless
@@ -79,10 +89,18 @@ Preferred communication style: Simple, everyday language.
 
 ### Design System
 
-**Visual Theme:**
-- Dark mode with deep blue/purple gradients
-- Primary color: Blue (`hsl(210 100% 50%)`)
-- Accent color: Purple (`hsl(265 100% 55%)`)
+**Theme System:**
+- 4 customizable themes: افتراضي (Default), اخضر (Green), احمر (Red), سماوي (Cyan)
+- Themes use raw HSL values that update shadcn CSS variables
+- Theme selection persists in localStorage across sessions
+- Themes apply consistently across all pages (home, add-contestant, quiz)
+- Each theme has unique colors, button border-radius, and visual identity
+- Theme selector in Header component with visual preview
+
+**Default Theme Visual Style:**
+- Dark mode with deep blue gradients
+- Primary color: Blue (`210 100% 50%`)
+- Accent color: Purple (`265 100% 55%`)
 - Radial spotlight effects and glow animations
 - Diamond/parallelogram-shaped answer buttons
 - Color-coded feedback (green for correct, red for wrong)
@@ -131,6 +149,19 @@ Preferred communication style: Simple, everyday language.
 - Audio files stored in `attached_assets/` directory
 
 ## Recent Changes (November 2025)
+
+**Theme System and URL Sharing (November 10, 2025):**
+- Implemented 4-theme system: افتراضي، اخضر، احمر، سماوي
+- Each theme uses raw HSL values that directly update shadcn CSS variables
+- Theme selector added to Header on all pages (home, add-contestant, quiz)
+- Fixed quiz page theming by removing duplicate Header component
+- Changed share code system from 6-character codes to full URL-based sharing
+- Share links contain base64-encoded contestant data in URL hash (#data=)
+- Links work across devices without expiration
+- Updated ShareDialog and ImportDialog UI to handle URLs instead of short codes
+- All data continues to be stored locally in localStorage
+
+## Earlier Changes (November 2025)
 
 **Replit Environment Setup (November 9, 2025):**
 - Configured Vite dev server with `allowedHosts: true` for Replit proxy compatibility
