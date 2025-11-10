@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Edit, Trash2 } from "lucide-react";
+import { Play, Edit, Trash2, Share2 } from "lucide-react";
 
 interface ContestantCardProps {
   id: string;
@@ -10,6 +10,7 @@ interface ContestantCardProps {
   onStart: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onShare: (id: string) => void;
 }
 
 export default function ContestantCard({
@@ -19,6 +20,7 @@ export default function ContestantCard({
   onStart,
   onEdit,
   onDelete,
+  onShare,
 }: ContestantCardProps) {
   return (
     <Card data-testid={`card-contestant-${id}`} className="hover-elevate">
@@ -39,6 +41,16 @@ export default function ContestantCard({
         >
           <Play className="ml-2 h-4 w-4" />
           بدء المسابقة
+        </Button>
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={() => onShare(id)}
+          disabled={questionCount === 0}
+          data-testid={`button-share-${id}`}
+          title="توليد كود مشاركة"
+        >
+          <Share2 className="h-4 w-4" />
         </Button>
         <Button
           size="icon"

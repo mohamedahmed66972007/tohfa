@@ -1,9 +1,10 @@
+import { useState } from "react";
 import AddContestantForm from "@/components/AddContestantForm";
 import Header from "@/components/Header";
-import type { InsertQuestion, Contestant } from "@shared/schema";
+import type { Contestant, InsertQuestion } from "@shared/schema";
 
 interface AddContestantPageProps {
-  onSave: (contestant: {
+  onSave: (data: {
     name: string;
     questions: InsertQuestion[];
     randomizeQuestions: boolean;
@@ -15,11 +16,7 @@ interface AddContestantPageProps {
   editingContestant?: Contestant;
 }
 
-export default function AddContestantPage({
-  onSave,
-  onCancel,
-  editingContestant,
-}: AddContestantPageProps) {
+export default function AddContestantPage({ onSave, onCancel, editingContestant }: AddContestantPageProps) {
   const handleFormSubmit = (data: {
     name: string;
     questions: InsertQuestion[];
@@ -33,8 +30,8 @@ export default function AddContestantPage({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-background">
-      <Header />
-      
+      <Header onLogoClick={onCancel} />
+
       <main className="container mx-auto px-4 pt-24 pb-12">
         <div className="max-w-4xl mx-auto">
           <AddContestantForm onSubmit={handleFormSubmit} onCancel={onCancel} contestant={editingContestant} />

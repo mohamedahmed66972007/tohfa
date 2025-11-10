@@ -3,9 +3,13 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import HomePage from "@/pages/home";
 import QuizPage from "@/pages/quiz";
 import AddContestantPage from "@/pages/add-contestant";
+import ShareDialog from "@/components/ShareDialog";
+import ImportDialog from "@/components/ImportDialog";
+import { getTheme, applyTheme } from "@/lib/themes";
 import type { Contestant, InsertQuestion } from "@shared/schema";
 
 // دالة لتوليد معرف فريد
@@ -38,11 +42,16 @@ function App() {
   const [contestants, setContestants] = useState<Contestant[]>([]);
   const [currentContestantId, setCurrentContestantId] = useState<string | null>(null);
   const [editingContestantId, setEditingContestantId] = useState<string | null>(null);
+  const [sharingContestantId, setSharingContestantId] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const { toast } = useToast();
 
-  // تحميل البيانات من localStorage عند بدء التطبيق
+  // تحميل البيانات وتطبيق الثمة الافتراضية عند بدء التطبيق
   useEffect(() => {
     const savedContestants = loadFromLocalStorage();
     setContestants(savedContestants);
+    
+    applyTheme(getTheme('default'));
   }, []);
 
   const handleAddContestant = () => {
@@ -129,8 +138,46 @@ function App() {
     setCurrentPage("home");
   };
 
+  const handleShareContestant = (id: string) => {
+    setSharingContestantId(id);
+  };
+
+  const handleCloseShareDialog = () => {
+    setSharingContestantId(null);
+  };
+
+  const handleImportContestant = () => {
+    setShowImportDialog(true);
+  };
+
+  const handleCloseImportDialog = () => {
+    setShowImportDialog(false);
+  };
+
+  const handleImportSuccess = (importedContestant: Contestant) => {
+    const id = generateId();
+    const newContestant: Contestant = {
+      ...importedContestant,
+      id,
+      questions: importedContestant.questions.map((q, index) => ({
+        ...q,
+        id: `${id}-q-${index}`,
+      })),
+    };
+    
+    const updatedContestants = [...contestants, newContestant];
+    setContestants(updatedContestants);
+    saveToLocalStorage(updatedContestants);
+    setShowImportDialog(false);
+    toast({
+      title: "تم الاستيراد بنجاح",
+      description: `تم استيراد نموذج "${newContestant.name}" مع ${newContestant.questions.length} سؤال`,
+    });
+  };
+
   const currentContestant = contestants.find((c) => c.id === currentContestantId);
   const editingContestant = contestants.find((c) => c.id === editingContestantId);
+  const sharingContestant = contestants.find((c) => c.id === sharingContestantId);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -142,16 +189,33 @@ function App() {
             onStartQuiz={handleStartQuiz}
             onEditContestant={handleEditContestant}
             onDeleteContestant={handleDeleteContestant}
+            onShareContestant={handleShareContestant}
+            onImportContestant={handleImportContestant}
           />
         )}
         {currentPage === "quiz" && currentContestant && (
-          <QuizPage contestant={currentContestant} onComplete={handleQuizComplete} />
+          <QuizPage 
+            contestant={currentContestant} 
+            onComplete={handleQuizComplete}
+          />
         )}
         {(currentPage === "add-contestant" || currentPage === "edit-contestant") && (
           <AddContestantPage
             onSave={handleSaveContestant}
             onCancel={handleCancelAddContestant}
             editingContestant={editingContestant}
+          />
+        )}
+        {sharingContestant && (
+          <ShareDialog
+            contestant={sharingContestant}
+            onClose={handleCloseShareDialog}
+          />
+        )}
+        {showImportDialog && (
+          <ImportDialog
+            onClose={handleCloseImportDialog}
+            onImportSuccess={handleImportSuccess}
           />
         )}
         <Toaster />

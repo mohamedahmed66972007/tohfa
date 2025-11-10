@@ -118,9 +118,9 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
   const currentQuestion = quizQuestions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen relative overflow-hidden" style={{
-      background: 'radial-gradient(ellipse at center, #1a2540 0%, #0b1228 50%, #050a16 100%)'
-    }}>
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-background via-accent/10 to-background">
+      <Header onLogoClick={onComplete} />
+      
       {/* Vignette overlay */}
       <div className="fixed inset-0 pointer-events-none" style={{
         background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%)'
@@ -133,17 +133,14 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
         }} />
       </div>
 
-      <Header />
-
       <main className="container mx-auto px-4 pt-24 pb-12 relative z-10">
-        {/* Progress bar with golden gradient - moved to top */}
-        <div className="mb-6 h-3 bg-black/40 border border-amber-500/30 rounded-full overflow-hidden">
+        {/* Progress bar with theme colors - moved to top */}
+        <div className="mb-6 h-3 bg-black/40 border border-primary/30 rounded-full overflow-hidden">
           <div
-            className="h-full transition-all duration-500 relative overflow-hidden"
+            className="h-full transition-all duration-500 relative overflow-hidden bg-primary"
             style={{
               width: `${((currentQuestionIndex + 1) / quizQuestions.length) * 100}%`,
-              background: 'linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%)',
-              boxShadow: '0 0 20px rgba(251, 191, 36, 0.6), inset 0 1px 0 rgba(255,255,255,0.3)'
+              boxShadow: '0 0 20px hsl(var(--primary) / 0.6), inset 0 1px 0 rgba(255,255,255,0.3)'
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
@@ -151,11 +148,8 @@ export default function QuizPage({ contestant, onComplete }: QuizPageProps) {
         </div>
 
         <div className="mb-12 text-center">
-          <h2 className="text-3xl font-bold tracking-wide mb-2" style={{
-            background: 'linear-gradient(to right, #fbbf24, #f59e0b, #fbbf24)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            textShadow: '0 0 30px rgba(251, 191, 36, 0.5)'
+          <h2 className="text-3xl font-bold tracking-wide mb-2 text-primary" style={{
+            textShadow: '0 0 30px hsl(var(--primary) / 0.5)'
           }} data-testid="text-contestant-name">
             {contestant.name}
           </h2>

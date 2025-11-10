@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Download } from "lucide-react";
 import ContestantCard from "@/components/ContestantCard";
 import Header from "@/components/Header";
 import type { Contestant } from "@shared/schema";
@@ -10,6 +10,8 @@ interface HomePageProps {
   onStartQuiz: (contestantId: string) => void;
   onEditContestant: (contestantId: string) => void;
   onDeleteContestant: (contestantId: string) => void;
+  onShareContestant: (contestantId: string) => void;
+  onImportContestant: () => void;
 }
 
 export default function HomePage({
@@ -18,6 +20,8 @@ export default function HomePage({
   onStartQuiz,
   onEditContestant,
   onDeleteContestant,
+  onShareContestant,
+  onImportContestant,
 }: HomePageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/5 to-background">
@@ -25,15 +29,25 @@ export default function HomePage({
       
       <main className="container mx-auto px-4 pt-24 pb-12">
 
-        <div className="max-w-6xl mx-auto mb-8">
+        <div className="max-w-6xl mx-auto mb-8 flex gap-4 flex-wrap">
           <Button
             onClick={onAddContestant}
             size="lg"
-            className="w-full md:w-auto shadow-[0_0_20px_rgba(59,130,246,0.3)]"
+            className="flex-1 min-w-[200px] shadow-[0_0_20px_rgba(59,130,246,0.3)]"
             data-testid="button-add-contestant"
           >
             <Plus className="ml-2 h-5 w-5" />
             إضافة نموذج جديد
+          </Button>
+          <Button
+            onClick={onImportContestant}
+            size="lg"
+            variant="outline"
+            className="flex-1 min-w-[200px]"
+            data-testid="button-import-contestant"
+          >
+            <Download className="ml-2 h-5 w-5" />
+            استيراد نموذج
           </Button>
         </div>
 
@@ -57,6 +71,7 @@ export default function HomePage({
                 onStart={onStartQuiz}
                 onEdit={onEditContestant}
                 onDelete={onDeleteContestant}
+                onShare={onShareContestant}
               />
             ))}
           </div>
